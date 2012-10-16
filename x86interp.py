@@ -41,7 +41,10 @@ class Reg(Operand):
     self.name = name
 
   def read(self):
-    return self.x86.regs[self.name]
+    if self.name in self.x86.regs:
+      return self.x86.regs[self.name]
+    else:
+      return None
 
   def write(self, value):
     self.x86.regs[self.name] = value
@@ -58,7 +61,10 @@ class Mem(Operand):
 
   def read(self):
     key = '%08x' % (self.offset + self.base.read())
-    return self.x86.mem[key]
+    if key in self.x86.mem:
+      return self.x86.mem[key]
+    else:
+      return None
 
   def write(self, value):
     key = '%08x' % (self.offset + self.base.read())
@@ -106,14 +112,12 @@ class X86Interpreter(object):
   def eval_function(self, sym):
     eip = self.labels[sym]
     while eip:
-      print eip
+      # print eip
       eip = self.eval_pc(eip)
 
   def eval_pc(self, eip):
     line = self.lines[eip]
     r = self.parse(line)
-    if r:
-      print r
     if isinstance(r, Insn):
       if r.opc == 'movl':
         r.args[1].write(r.args[0].read())
@@ -133,10 +137,10 @@ class X86Interpreter(object):
       elif r.opc == 'pushl':
         esp = Reg(self, 'esp')
         star_esp = Mem(self, 0, esp)
-        star_esp.write(r.args[0].read())
         esp.write(esp.read() - 4)
+        star_esp.write(r.args[0].read())
         return eip + 1
-      elif r.ops == 'leave':
+      elif r.opc == 'leave':
         ebp = Reg(self, 'ebp')
         esp = Reg(self, 'esp')
         star_esp = Mem(self, 0, esp)
@@ -149,25 +153,28 @@ class X86Interpreter(object):
       elif r.opc == 'ret':
         esp = Reg(self, 'esp')
         star_esp = Mem(self, 0, esp)
+        # popl eip
         eip = star_esp.read()
-        esp.write(esp.read() - 4)
+        esp.write(esp.read() + 4)
         return eip
-      elif r.opc == 'call' and r.args[0] == '_input':
-        esp = Reg(self, 'esp')
-        star_esp = Mem(self, 0, esp)
-        print star_esp.read()
-        return eip + 1
-      elif r.opc == 'call' and r.args[0] == '_print_int_nl':
-        eax = Reg(self, 'eax')
-        eax.write(input())
-        return eip + 1
       elif r.opc == 'call':
-        esp = Reg(self, 'esp')
-        star_esp = Mem(self, 0, esp)
-        star_esp.write(eip)
         label = r.args[0]
         if isinstance(label, Label):
-          return self.labels[label.name]
+          name = label.name
+          esp = Reg(self, 'esp')
+          star_esp = Mem(self, 0, esp)
+          if name == '_input':
+            eax = Reg(self, 'eax')
+            eax.write(input())
+            return eip + 1
+          elif name == '_print_int_nl':
+            print star_esp.read()
+            return eip + 1
+          else:
+            # push eip
+            esp.write(esp.read() - 4)
+            star_esp.write(eip)
+            return self.labels[label.name]
         else:
           raise Exception('bad label ' + str(label))
       else:
@@ -189,12 +196,12 @@ class X86Interpreter(object):
       else:
         m = re.search(r'^((\w|\$)+)$', op)
         if m:
-          jumps = ['call', 'jne', 'jle', 'jge', 'jeq', 'jlt', 'jgt', 'jmp']
-          if opc in jumps:
-            return Label(self, m.group(1))
+          name = m.group(1)
+          if name in self.labels or name == '_print_int_nl' or name == '_input':
+            return Label(self, name)
           else:
             # virtual register
-            return Reg(self, m.group(1))
+            return Reg(self, name)
         else:
           return None
 
@@ -224,7 +231,7 @@ class X86Interpreter(object):
       label = self.label(line)
       if label:
         self.labels[label] = i
-        print i, label
+        # print i, label
       
       # should parse line here
       self.lines[i] = line
