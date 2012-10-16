@@ -233,7 +233,7 @@ class X86Interpreter(object):
     return None
 
   def load(self, code):
-    self.lines = code.split('\n')
+    self.lines += code.split('\n')
     for i, line in enumerate(self.lines):
       line = re.sub(r'#.*', '', line)
       line = re.sub(r'//.*', '', line)
