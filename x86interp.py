@@ -106,18 +106,30 @@ class X86Interpreter(object):
         'gs':           0xf,
     }
 
-  def parse(self, insn):
-    tokens = insn.split()
-
   def eval_function(self, sym):
-    eip = self.labels[sym]
-    while eip:
+    if sym in self.labels:
+      eip = self.labels[sym]
+    elif isinstance(sym, int):
+      eip = sym
+    else:
+      print 'invalid function ' + str(sym)
+      eip = None
+
+    while eip != None:
       # print eip
       eip = self.eval_pc(eip)
 
   def eval_pc(self, eip):
+    # if we fall off the end, return
+    if eip >= len(self.lines):
+      return None
+
     line = self.lines[eip]
-    r = self.parse(line)
+
+    r = None
+    if line:
+      r = self.parse(line)
+
     if isinstance(r, Insn):
       if r.opc == 'movl':
         r.args[1].write(r.args[0].read())
@@ -231,7 +243,6 @@ class X86Interpreter(object):
       label = self.label(line)
       if label:
         self.labels[label] = i
-        # print i, label
       
       # should parse line here
       self.lines[i] = line
@@ -246,12 +257,14 @@ def main():
     x86.load(f.read())
 
   # run _main or main
-  if x86.labels['_main']:
+  if '_main' in x86.labels:
     x86.eval_function('_main')
-  elif x86.labels['main']:
+  elif 'main' in x86.labels:
     x86.eval_function('main')
   else:
     print 'symbol _main or main not found'
+    print 'starting from the first instruction'
+    x86.eval_function(0)
 
 if __name__ == "__main__":
   main()
