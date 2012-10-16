@@ -136,6 +136,16 @@ class X86Interpreter(object):
         star_esp.write(r.args[0].read())
         esp.write(esp.read() - 4)
         return eip + 1
+      elif r.ops == 'leave':
+        ebp = Reg(self, 'ebp')
+        esp = Reg(self, 'esp')
+        star_esp = Mem(self, 0, esp)
+        # movl ebp, esp
+        esp.write(ebp.read())
+        # popl ebp
+        ebp.write(star_esp.read())
+        esp.write(esp.read() + 4)
+        return eip + 1
       elif r.opc == 'ret':
         esp = Reg(self, 'esp')
         star_esp = Mem(self, 0, esp)
