@@ -143,6 +143,9 @@ class X86Interpreter(object):
       elif r.opc == 'addl' or r.opc == 'add':
         r.args[1].write(r.args[1].read() + r.args[0].read())
         return eip + 1
+      elif r.opc == 'negl' or r.opc == 'neg':
+        r.args[0].write(-r.args[0].read())
+        return eip + 1
       elif r.opc == 'subl' or r.opc == 'sub':
         r.args[1].write(r.args[1].read() - r.args[0].read())
         return eip + 1
@@ -201,11 +204,14 @@ class X86Interpreter(object):
           name = label.name
           esp = Reg(self, 'esp')
           star_esp = Mem(self, 0, esp)
-          if name == '_input':
+          if name == '_input' or name == 'input':
             eax = Reg(self, 'eax')
             eax.write(input())
             return eip + 1
-          elif name == '_print_int_nl':
+          elif name == '_print_int' or name == 'print_int':
+            print star_esp.read(),
+            return eip + 1
+          elif name == '_print_int_nl' or name == 'print_int_nl':
             print star_esp.read()
             return eip + 1
           else:
@@ -235,7 +241,10 @@ class X86Interpreter(object):
         m = re.search(r'^((\w|\$)+)$', op)
         if m:
           name = m.group(1)
-          if name in self.labels or name == '_print_int_nl' or name == '_input':
+          functions = ['input', '_input',
+                       'print_int_nl', '_print_int_nl',
+                       'print_int', '_print_int']
+          if name in self.labels or name in functions:
             return Label(self, name)
           else:
             # virtual register
