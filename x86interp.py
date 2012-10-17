@@ -250,7 +250,7 @@ class X86Interpreter(object):
             # virtual register
             return Reg(self, name)
         else:
-          return None
+          raise Exception('unrecognized operand ' + op)
 
   def parse(self, line):
     if line.startswith('.'):
