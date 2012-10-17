@@ -134,11 +134,37 @@ class X86Interpreter(object):
       if r.opc == 'movl':
         r.args[1].write(r.args[0].read())
         return eip + 1
-      elif r.opc == 'addl':
+      elif r.opc == 'incl' or r.opc == 'inc':
+        r.args[0].write(r.args[0].read() + 1)
+        return eip + 1
+      elif r.opc == 'decl' or r.opc == 'dec':
+        r.args[0].write(r.args[0].read() - 1)
+        return eip + 1
+      elif r.opc == 'addl' or r.opc == 'add':
         r.args[1].write(r.args[0].read() + r.args[1].read())
         return eip + 1
-      elif r.opc == 'subl':
+      elif r.opc == 'subl' or r.opc == 'sub':
         r.args[1].write(r.args[0].read() - r.args[1].read())
+        return eip + 1
+      elif r.opc == 'imull' or r.opc == 'imul':
+        if len(r.args) == 1:
+          eax = Reg(self, 'eax')
+          edx = Reg(self, 'edx')
+          result = r.args[0].read() * eax.read()
+          lo = result & 0xffffffff
+          hi = (result >> 32) & 0xffffffff
+          eax.write(lo)
+          edx.write(hi)
+        elif len(r.args) == 2:
+          result = r.args[0].read() * r.args[1].read()
+          lo = result & 0xffffffff
+          r.args[1].write(lo)
+        elif len(r.args) == 3:
+          result = r.args[0].read() * r.args[1].read()
+          lo = result & 0xffffffff
+          r.args[2].write(lo)
+        else:
+          raise Exception('bad imul instruction: ' + r)
         return eip + 1
       elif r.opc == 'popl':
         esp = Reg(self, 'esp')
