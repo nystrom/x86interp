@@ -141,10 +141,10 @@ class X86Interpreter(object):
         r.args[0].write(r.args[0].read() - 1)
         return eip + 1
       elif r.opc == 'addl' or r.opc == 'add':
-        r.args[1].write(r.args[0].read() + r.args[1].read())
+        r.args[1].write(r.args[1].read() + r.args[0].read())
         return eip + 1
       elif r.opc == 'subl' or r.opc == 'sub':
-        r.args[1].write(r.args[0].read() - r.args[1].read())
+        r.args[1].write(r.args[1].read() - r.args[0].read())
         return eip + 1
       elif r.opc == 'imull' or r.opc == 'imul':
         if len(r.args) == 1:
@@ -156,11 +156,11 @@ class X86Interpreter(object):
           eax.write(lo)
           edx.write(hi)
         elif len(r.args) == 2:
-          result = r.args[0].read() * r.args[1].read()
+          result = r.args[1].read() * r.args[0].read()
           lo = result & 0xffffffff
           r.args[1].write(lo)
         elif len(r.args) == 3:
-          result = r.args[0].read() * r.args[1].read()
+          result = r.args[1].read() * r.args[0].read()
           lo = result & 0xffffffff
           r.args[2].write(lo)
         else:
